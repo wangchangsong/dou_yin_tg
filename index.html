@@ -98,10 +98,7 @@
         <div>用户: <span id="username"></span></div>
         <div>ID: <span id="userId"></span></div>
     </div>
-    <div id="feed" class="container">
-        <!-- 动态填充 -->
-    </div>
-
+    <div id="feed" class="container"></div>
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
@@ -109,126 +106,102 @@
         tg.isVerticalSwipesEnabled = false;
 
         const user = tg.initDataUnsafe?.user;
-        if (user) {
-            document.getElementById('username').textContent = user.username || user.first_name;
-            document.getElementById('userId').textContent = user.id;
-        }
 
-        const BOT_TOKEN = '8475006065:AAFUo-BetTb5K72P9qBX25EVsmIPSkA4jQk'; // ← 替换成你的 Token
+        const BOT_TOKEN = '8475006065:AAFUo-BetTb5K72P9qBX25EVsmIPSkA4jQk';
 
         const demoItems = [
             { id: 1, chatId: '@demo1', title: '示例1', url: 'https://picsum.photos/400/600?random=1', color: '#ff6b6b' },
-            { id: 2, chatId: '@demo2', title: '示例2', url: 'https://picsum.photos/400/600?random=2', color: '#a8edea' },
+            { id: 2, chatId: '@demo2', title: '示例2', url: 'https://picsum.photos/400/600?random=2', color: '#4ecdc4' },
             { id: 3, chatId: '@demo3', title: '示例3', url: 'https://picsum.photos/400/600?random=3', color: '#ff9a9e' }
         ];
 
         let currentIndex = 0;
 
         function renderFeed() {
-            const container = document.querySelector('.container');
+            const container = document.getElementById('feed');
             container.innerHTML = demoItems.map((item, index) => `
-        <div class="page ${index === 0 ? 'active' : 'next'}"
-             style="background: ${item.color};"
-             data-index="${index}">
+        <div class="page ${index === 0 ? 'active' : 'next'}" style="background:${item.color};" data-index="${index}">
           <img src="${item.url}" alt="${item.title}">
           <button class="favorite" onclick="toggleFavorite(${item.id}, '${item.chatId}')">♡</button>
         </div>
       `).join('');
 
-            // 再写入一次用户信息（防止被 innerHTML 覆盖）
-            const info = document.getElementById('info');
-            if (!info) {
-                const infoDiv = document.createElement('div');
-                infoDiv.id = 'info';
-                infoDiv.innerHTML = `
-          <div>用户: <span id="username"></span></div>
-          <div>ID: <span id="userId"></span></div>
-        `;
-                document.body.appendChild(infoDiv);
-            }
             if (user) {
                 document.getElementById('username').textContent = user.username || user.first_name;
                 document.getElementById('userId').textContent = user.id;
             }
 
-            bindSwipeEvents(container);
+            bindSwipe(container);
         }
 
-        function bindSwipeEvents(container) {
+        function bindSwipe(container) {
             let startY = null;
             let currentY = null;
 
             container.ontouchstart = (e) => {
-                if (!e.touches || !e.touches.length) return;
+                if (!e.touches.length) return;
                 startY = e.touches[0].clientY;
                 currentY = startY;
             };
 
             container.ontouchmove = (e) => {
-                if (!e.touches || !e.touches.length || startY === null) return;
+                if (!e.touches.length || startY === null) return;
                 currentY = e.touches[0].clientY;
             };
 
             container.ontouchend = () => {
                 if (startY === null || currentY === null) return;
-                const deltaY = startY - currentY;
-
+                const delta = startY - currentY;
                 startY = null;
                 currentY = null;
-
-                if (Math.abs(deltaY) < 40) return; // 阈值
-
-                if (deltaY < 0 && currentIndex < demoItems.length - 1) {
-                    // 上滑（deltaY < 0）：下一页
-                    switchPage(currentIndex + 1);
-                } else if (deltaY > 0 && currentIndex > 0) {
-                    // 下滑（deltaY > 0）：上一页
-                    switchPage(currentIndex - 1);
+                if (Math.abs(delta) < 40) return;
+                if (delta > 0 && currentIndex < demoItems.length - 1) {
+                    goTo(currentIndex + 1);
+                } else if (delta < 0 && currentIndex > 0) {
+                    goTo(currentIndex - 1);
                 }
-
             };
         }
 
-        function switchPage(newIndex) {
+        function goTo(newIndex) {
             const pages = document.querySelectorAll('.page');
-            const oldIndex = currentIndex;
-            if (newIndex === oldIndex) return;
-
-            // 重置所有 page 状态
-            pages.forEach(p => p.classList.remove('active', 'prev', 'next'));
             pages.forEach((p, i) => {
+                p.classList.remove('active', 'prev', 'next');
                 if (i < newIndex) p.classList.add('prev');
                 else if (i === newIndex) p.classList.add('active');
                 else p.classList.add('next');
             });
-
             currentIndex = newIndex;
         }
 
         window.toggleFavorite = async function (messageId, chatId) {
             const btn = event.target;
             if (btn.classList.contains('favorited')) return;
+            if (!user) {
+                tg.showAlert('请在 Telegram 内打开');
+                return;
+            }
             try {
                 const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        chat_id: 'me',
-                        text: `收藏测试: ${chatId} #${messageId}`
+                        chat_id: user.id,
+                        text: `⭐ 收藏: ${chatId} #${messageId}`
                     })
                 });
-                if (res.ok) {
+                const data = await res.json();
+                if (data.ok) {
                     btn.classList.add('favorited');
-                    tg.showAlert('收藏成功！查看“已保存消息”');
+                    tg.showAlert('收藏成功！');
                 } else {
-                    tg.showAlert('Token 错误，请检查替换');
+                    tg.showAlert('失败: ' + data.description);
                 }
             } catch (e) {
-                tg.showAlert('网络错误');
+                tg.showAlert('网络错误: ' + e.message);
             }
         };
 
-        // 初始化
         renderFeed();
     </script>
 </body>
