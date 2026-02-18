@@ -1,204 +1,228 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DouYin TG Feed</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DouYin TG Feed</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        body,
-        html {
-            height: 100vh;
-            overflow: hidden;
-            background: #000;
-            color: white;
-            font-family: system-ui;
-        }
+    body, html {
+      height: 100vh;
+      overflow: hidden;
+      background: #000;
+      color: white;
+      font-family: system-ui;
+    }
 
-        #info {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            z-index: 100;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 14px;
-        }
+    #info {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
 
-        .container {
-            height: 100vh;
-            position: relative;
-        }
+    .container {
+      height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
 
-        .page {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.3s ease;
-        }
+    .page {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.3s ease;
+    }
 
-        .page.active {
-            transform: translateY(0);
-            z-index: 10;
-        }
+    .page.active {
+      transform: translateY(0);
+      z-index: 10;
+    }
 
-        .page.prev {
-            transform: translateY(100%);
-        }
+    .page.prev {
+      transform: translateY(100%);
+      z-index: 5;
+    }
 
-        .page.next {
-            transform: translateY(-100%);
-        }
+    .page.next {
+      transform: translateY(-100%);
+      z-index: 5;
+    }
 
-        .page img {
-            width: 80%;
-            height: 60%;
-            object-fit: cover;
-            border-radius: 12px;
-        }
+    .page img {
+      width: 80%;
+      height: 60%;
+      object-fit: cover;
+      border-radius: 12px;
+    }
 
-        .favorite {
-            position: absolute;
-            top: 30px;
-            right: 30px;
-            background: rgba(0, 0, 0, 0.5);
-            color: white;
-            border: none;
-            font-size: 24px;
-            padding: 12px;
-            border-radius: 50%;
-            cursor: pointer;
-            z-index: 20;
-        }
+    .favorite {
+      position: absolute;
+      top: 30px;
+      right: 30px;
+      background: rgba(0, 0, 0, 0.5);
+      color: white;
+      border: none;
+      font-size: 24px;
+      padding: 12px;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 20;
+    }
 
-        .favorited {
-            color: #ff4757;
-        }
-    </style>
+    .favorited {
+      color: #ff4757;
+    }
+  </style>
 </head>
 
 <body>
-    <div id="info">
-        <div>用户: <span id="username"></span></div>
-        <div>ID: <span id="userId"></span></div>
-    </div>
-    <div id="feed" class="container">
-        <!-- 后续动态填视频/图片 -->
-    </div>
+  <div id="info">
+    <div>用户: <span id="username"></span></div>
+    <div>ID: <span id="userId"></span></div>
+  </div>
+  <div id="feed" class="container">
+    <!-- 动态填充 -->
+  </div>
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.disableVerticalSwipes?.();
-        tg.isVerticalSwipesEnabled = false;
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    tg.disableVerticalSwipes?.();
+    tg.isVerticalSwipesEnabled = false;
 
-        const user = tg.initDataUnsafe?.user;
-        if (user) {
-            document.getElementById('username').textContent = user.username || user.first_name;
-            document.getElementById('userId').textContent = user.id;
+    const user = tg.initDataUnsafe?.user;
+    if (user) {
+      document.getElementById('username').textContent = user.username || user.first_name;
+      document.getElementById('userId').textContent = user.id;
+    }
+
+    const BOT_TOKEN = '8475006065:AAFUo-BetTb5K72P9qBX25EVsmIPSkA4jQk'; // ← 替换成你的 Token
+
+    const demoItems = [
+      { id: 1, chatId: '@demo1', title: '示例1', url: 'https://picsum.photos/400/600?random=1', color: '#ff6b6b' },
+      { id: 2, chatId: '@demo2', title: '示例2', url: 'https://picsum.photos/400/600?random=2', color: '#a8edea' },
+      { id: 3, chatId: '@demo3', title: '示例3', url: 'https://picsum.photos/400/600?random=3', color: '#ff9a9e' }
+    ];
+
+    let currentIndex = 0;
+
+    function renderFeed() {
+      const container = document.querySelector('.container');
+      container.innerHTML = demoItems.map((item, index) => `
+        <div class="page ${index === 0 ? 'active' : 'next'}"
+             style="background: ${item.color};"
+             data-index="${index}">
+          <img src="${item.url}" alt="${item.title}">
+          <button class="favorite" onclick="toggleFavorite(${item.id}, '${item.chatId}')">♡</button>
+        </div>
+      `).join('');
+
+      // 再写入一次用户信息（防止被 innerHTML 覆盖）
+      const info = document.getElementById('info');
+      if (!info) {
+        const infoDiv = document.createElement('div');
+        infoDiv.id = 'info';
+        infoDiv.innerHTML = `
+          <div>用户: <span id="username"></span></div>
+          <div>ID: <span id="userId"></span></div>
+        `;
+        document.body.appendChild(infoDiv);
+      }
+      if (user) {
+        document.getElementById('username').textContent = user.username || user.first_name;
+        document.getElementById('userId').textContent = user.id;
+      }
+
+      bindSwipeEvents(container);
+    }
+
+    function bindSwipeEvents(container) {
+      let startY = null;
+      let currentY = null;
+
+      container.ontouchstart = (e) => {
+        if (!e.touches || !e.touches.length) return;
+        startY = e.touches[0].clientY;
+        currentY = startY;
+      };
+
+      container.ontouchmove = (e) => {
+        if (!e.touches || !e.touches.length || startY === null) return;
+        currentY = e.touches[0].clientY;
+      };
+
+      container.ontouchend = () => {
+        if (startY === null || currentY === null) return;
+        const deltaY = startY - currentY;
+
+        startY = null;
+        currentY = null;
+
+        if (Math.abs(deltaY) < 40) return; // 阈值
+
+        if (deltaY > 0 && currentIndex < demoItems.length - 1) {
+          // 上滑 → 下一页
+          switchPage(currentIndex + 1);
+        } else if (deltaY < 0 && currentIndex > 0) {
+          // 下滑 → 上一页
+          switchPage(currentIndex - 1);
         }
+      };
+    }
 
-        const BOT_TOKEN = '8475006065:AAFUo-BetTb5K72P9qBX25EVsmIPSkA4jQk';  // ← 替换！
+    function switchPage(newIndex) {
+      const pages = document.querySelectorAll('.page');
+      const oldIndex = currentIndex;
+      if (newIndex === oldIndex) return;
 
-        const demoItems = [
-            { id: 1, chatId: '@demo1', title: '示例1', url: 'https://picsum.photos/400/600?random=1', color: '#ff6b6b' },
-            { id: 2, chatId: '@demo2', title: '示例2', url: 'https://picsum.photos/400/600?random=2', color: '#a8edea' },
-            { id: 3, chatId: '@demo3', title: '示例3', url: 'https://picsum.photos/400/600?random=3', color: '#ff9a9e' }
-        ];
+      // 重置所有 page 状态
+      pages.forEach(p => p.classList.remove('active', 'prev', 'next'));
+      pages.forEach((p, i) => {
+        if (i < newIndex) p.classList.add('prev');
+        else if (i === newIndex) p.classList.add('active');
+        else p.classList.add('next');
+      });
 
-        let currentIndex = 0;
+      currentIndex = newIndex;
+    }
 
-        function renderFeed() {
-            const container = document.querySelector('.container');
-            container.innerHTML = `
-    <div id="info">
-      用户: <span id="username"></span> | ID: <span id="userId"></span>
-    </div>
-    ${demoItems.map((item, index) => `
-      <div class="page ${index === 0 ? 'active' : ''}" style="background: ${item.color};" data-index="${index}">
-        <img src="${item.url}" alt="${item.title}">
-        <button class="favorite" onclick="toggleFavorite(${item.id}, '${item.chatId}')">♡</button>
-      </div>
-    `).join('')}
-  `;
-
-            // 重新绑定用户信息
-            const userEl = document.getElementById('username');
-            if (user) userEl.textContent = user.username || user.first_name;
-
-            bindSwipeEvents();
+    window.toggleFavorite = async function (messageId, chatId) {
+      const btn = event.target;
+      if (btn.classList.contains('favorited')) return;
+      try {
+        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: 'me',
+            text: `收藏测试: ${chatId} #${messageId}`
+          })
+        });
+        if (res.ok) {
+          btn.classList.add('favorited');
+          tg.showAlert('收藏成功！查看“已保存消息”');
+        } else {
+          tg.showAlert('Token 错误，请检查替换');
         }
+      } catch (e) {
+        tg.showAlert('网络错误');
+      }
+    };
 
-        function bindSwipeEvents() {
-            let startY = 0;
-            let currentY = 0;
-
-            document.addEventListener('touchstart', e => {
-                startY = e.touches[0].clientY;
-            });
-
-            document.addEventListener('touchmove', e => {
-                currentY = e.touches[0].clientY;
-            });
-
-            document.addEventListener('touchend', () => {
-                const deltaY = startY - currentY;
-
-                if (Math.abs(deltaY) > 50) {  // 滑动阈值
-                    if (deltaY > 0 && currentIndex < demoItems.length - 1) {
-                        // 上滑：下一页
-                        switchPage(currentIndex + 1);
-                    } else if (deltaY < 0 && currentIndex > 0) {
-                        // 下滑：上一页
-                        switchPage(currentIndex - 1);
-                    }
-                }
-            });
-        }
-
-        function switchPage(newIndex) {
-            const pages = document.querySelectorAll('.page');
-            pages[currentIndex].classList.remove('active');
-            pages[newIndex].classList.add('active');
-            currentIndex = newIndex;
-        }
-
-        window.toggleFavorite = async function (messageId, chatId) {
-            const btn = event.target;
-            if (btn.classList.contains('favorited')) return;
-            try {
-                const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chat_id: 'me', text: `收藏测试: ${chatId} #${messageId}` })
-                });
-                if (res.ok) {
-                    btn.classList.add('favorited');
-                    tg.showAlert('收藏成功！查看"已保存消息"');
-                } else {
-                    tg.showAlert('Token 错误，请检查替换');
-                }
-            } catch (e) {
-                tg.showAlert('网络错误');
-            }
-        };
-
-        // 初始化
-        renderFeed();
-
-    </script>
+    // 初始化
+    renderFeed();
+  </script>
 </body>
-
 </html>
