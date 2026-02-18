@@ -182,18 +182,20 @@
                 return;
             }
             try {
+                // 第一步：用 copyMessage 复制到用户的 Saved Messages
+                // 因为现在是 demo 假数据，先用 sendMessage 发到 Saved Messages 频道
                 const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         chat_id: user.id,
-                        text: `⭐ 收藏: ${chatId} #${messageId}`
+                        text: `⭐ 已收藏\n来源频道: ${chatId}\n消息ID: #${messageId}\n\nt.me/${chatId.replace('@', '')}/${messageId}`
                     })
                 });
                 const data = await res.json();
                 if (data.ok) {
                     btn.classList.add('favorited');
-                    tg.showAlert('收藏成功！');
+                    tg.showAlert('收藏成功！去 @dou_yin_tg_bot 对话查看');
                 } else {
                     tg.showAlert('失败: ' + data.description);
                 }
@@ -201,6 +203,7 @@
                 tg.showAlert('网络错误: ' + e.message);
             }
         };
+
 
         renderFeed();
     </script>
